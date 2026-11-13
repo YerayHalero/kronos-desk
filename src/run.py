@@ -205,6 +205,11 @@ def main() -> int:
     PANEL.mkdir(parents=True, exist_ok=True)
     move_pct = float(os.environ.get("KD_ALERT_PCT", CFG["alert_move_pct"]))
     t0 = time.time()
+    if os.environ.get("KD_TEST") == "1":                    # prueba manual de Telegram
+        log("Secretos de Telegram presentes: token=%s chat_id=%s" % (
+            bool(os.environ.get("TELEGRAM_TOKEN")), bool(os.environ.get("TELEGRAM_CHAT_ID"))))
+        log("Mensaje de prueba enviado: %s" % send_telegram(
+            "Kronos Desk: prueba de conexión correcta. Las alertas llegarán a este chat."))
 
     candles, sources = {}, {}
     for s in CFG["symbols"]:

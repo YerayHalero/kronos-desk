@@ -2,7 +2,12 @@ name: kronos-hourly
 on:
   schedule:
     - cron: "7 * * * *"      # minuto 7 de cada hora (UTC); GitHub puede retrasarlo unos minutos
-  workflow_dispatch: {}       # botón "Run workflow" para lanzarlo a mano
+  workflow_dispatch:          # botón "Run workflow" para lanzarlo a mano
+    inputs:
+      test_telegram:
+        description: "Enviar un mensaje de prueba a Telegram"
+        type: boolean
+        default: false
 
 permissions:
   contents: write             # solo para guardar resultados en el repo
@@ -44,6 +49,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KD_TEST: ${{ inputs.test_telegram && '1' || '0' }}
 
       - name: Guardar resultados en el repo
         run: |
