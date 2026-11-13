@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kronos Desk · modo sombra</title>
+<style>
+  :root { --bg:#0e1116; --card:#171c24; --line:#2a3240; --tx:#e6e9ee; --mut:#8b95a5; --up:#3fb68b; --dn:#e5634d; --acc:#6ea8fe; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx); font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:4px 0 2px; }
+  .sub, .foot { color:var(--mut); font-size:12.5px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0; }
+  .row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .sym { font-size:18px; font-weight:700; }
+  .big { font-size:22px; font-weight:700; }
+  .up { color:var(--up); } .dn { color:var(--dn); }
+  .kv { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; font-size:13px; }
+  .kv b { display:block; font-size:15px; }
+  .kv span { color:var(--mut); }
+  svg { width:100%; height:auto; margin-top:8px; display:block; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:right; padding:6px 4px; border-bottom:1px solid var(--line); }
+  th:first-child, td:first-child { text-align:left; }
+  th { color:var(--mut); font-weight:600; }
+  .warn { border-left:3px solid var(--acc); padding-left:10px; color:var(--mut); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Kronos Desk · modo sombra</h1>
+  <div class="sub" id="meta">Cargando…</div>
+  <div id="cards"></div>
+  <div class="card">
+    <div class="row"><b>Marcador en sombra</b><span class="sub">acierto vs. mantener</span></div>
+    <div id="score"></div>
+  </div>
+  <p class="warn">Experimento de estudio. Sin dinero real ni órdenes automáticas. Una predicción de un modelo no es una recomendación de inversión; los mercados cripto son muy volátiles y el modelo puede equivocarse con frecuencia.</p>
+  <p class="foot">Modelo Kronos-small (licencia MIT) · velas cerradas de 1 h · la línea discontinua es la media de varias trayectorias simuladas y la franja marca su rango.</p>
+</main>
+<script>
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  for (const c of kids) e.append(c);
+  return e;
+}
+const fmt = (x, d = 2) => Number(x).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (x) => (x >= 0 ? '+' : '') + fmt(x, 2) + '%';
+const NS = 'http://www.w3.org/2000/svg';
+
+function chart(f) {
+  const real = f.recent.map(r => r[1]);
+  const n = real.length, m = f.mean.length, W = 700, Hh = 220, pad = 8;
+  const all = real.concat(f.lo, f.hi);
+  const mn = Math.min(...all), mx = Math.max(...all);
+  const X = i => pad + (i / (n + m - 1)) * (W - 2 * pad);
+  const Y = v => Hh - pad - ((v - mn) / (mx - mn || 1)) * (Hh - 2 * pad);
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  const add = (name, attrs) => { const e = document.createElementNS(NS, name); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); svg.append(e); };
+  const px = (i, v) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`;
+  const band = [];
+  for (let j = 0; j < m; j++) band.push(px(n + j, f.hi[j]));
+  for (let j = m - 1; j >= 0; j--) band.push(px(n + j, f.lo[j]));
+  add('polygon', { points: band.join(' '), fill: 'rgba(110,168,254,.18)' });
+  add('polyline', { points: real.map((v, i) => px(i, v)).join(' '), fill: 'none', stroke: '#e6e9ee', 'stroke-width': 2 });
+  const path = [px(n - 1, real[n - 1])].concat(f.mean.map((v, j) => px(n + j, v)));
+  add('polyline', { points: path.join(' '), fill: 'none', stroke: '#6ea8fe', 'stroke-width': 2, 'stroke-dasharray': '6 4' });
+  add('line', { x1: X(n - 1), x2: X(n - 1), y1: pad, y2: Hh - pad, stroke: '#2a3240', 'stroke-dasharray': '3 3' });
+  return svg;
+}
+
+function card(sym, f, hz) {
+  const chg = (f.pred_close / f.base_close - 1) * 100;
+  const cls = chg >= 0 ? 'up' : 'dn';
+  const lo = (Math.min(...f.lo.slice(-1)) / f.base_close - 1) * 100;
+  const hi = (Math.max(...f.hi.slice(-1)) / f.base_close - 1) * 100;
+  return h('div', { class: 'card' },
+    h('div', { class: 'row' }, h('span', { class: 'sym' }, sym), h('span', { class: 'big' }, fmt(f.base_close))),
+    h('div', { class: 'row' }, h('span', { class: 'sub' }, `a ${hz} h previsto`), h('span', { class: 'big ' + cls }, fmt(f.pred_close) + '  ' + pct(chg))),
+    chart(f),
+    h('div', { class: 'kv' },
+      h('div', {}, h('span', {}, 'Trayectorias que suben'), h('b', {}, Math.round(f.p_up * 100) + '% (' + Math.round(f.p_up * f.samples) + '/' + f.samples + ')')),
+      h('div', {}, h('span', {}, 'Rango previsto'), h('b', {}, pct(lo) + ' … ' + pct(hi))),
+      h('div', {}, h('span', {}, 'Fuente de velas'), h('b', {}, f.source))));
+}
+
+function scoreTable(sc) {
+  const rows = Object.entries(sc).filter(([, v]) => v.n > 0);
+  if (!rows.length) return h('p', { class: 'sub' }, 'Aún no hay predicciones corregidas: la primera tarda ' + '24 h en poder compararse con lo que pasó.');
+  const t = h('table', {}, h('tr', {}, h('th', {}, 'Activo'), h('th', {}, 'n'), h('th', {}, 'Acierto'), h('th', {}, 'Estrategia'), h('th', {}, 'Mantener'), h('th', {}, 'n indep.'), h('th', {}, 'Acierto indep.')));
+  for (const [k, v] of rows) {
+    t.append(h('tr', {}, h('td', {}, k === 'ALL' ? 'Todos' : k), h('td', {}, String(v.n)),
+      h('td', {}, Math.round(v.hit_rate * 100) + '%'), h('td', {}, pct(v.strategy_pct)), h('td', {}, pct(v.hold_pct)),
+      h('td', {}, String(v.independent.n)), h('td', {}, Math.round(v.independent.hit_rate * 100) + '%')));
+  }
+  return h('div', {}, t, h('p', { class: 'sub' }, 'Estrategia = largo si la predicción sube, fuera si baja (rendimiento medio por predicción de 24 h). Las predicciones horarias se solapan; las columnas «indep.» usan una de cada 24. Con pocos datos todo esto es ruido.'));
+}
+
+fetch('data/latest.json?' + Date.now()).then(r => r.json()).then(d => {
+  document.getElementById('meta').textContent = 'Actualizado ' + new Date(d.generated_at).toLocaleString('es-ES') + ' · ' + d.model + ' · horizonte ' + d.horizon_hours + ' h';
+  const box = document.getElementById('cards');
+  for (const [s, f] of Object.entries(d.forecasts)) box.append(card(s, f, d.horizon_hours));
+  document.getElementById('score').append(scoreTable(d.scores));
+}).catch(() => { document.getElementById('meta').textContent = 'Aún no hay datos: lanza el workflow una vez.'; });
+</script>
+</body>
+</html>

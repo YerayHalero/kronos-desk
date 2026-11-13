@@ -1,0 +1,15 @@
+{
+  "model": "NeoQuasar/Kronos-small",
+  "tokenizer": "NeoQuasar/Kronos-Tokenizer-base",
+  "lookback": 512,
+  "horizon_hours": 24,
+  "samples": 5,
+  "alert_move_pct": 2.0,
+  "sources": ["binance", "kraken"],
+  "symbols": [
+    {"id": "BTC", "binance": "BTCUSDT", "kraken": "XBTUSD"},
+    {"id": "ETH", "binance": "ETHUSDT", "kraken": "ETHUSD"},
+    {"id": "SOL", "binance": "SOLUSDT", "kraken": "SOLUSD"}
+  ],
+  "levels": {"BTC": [], "ETH": [], "SOL": []}
+}

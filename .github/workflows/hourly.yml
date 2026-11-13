@@ -1,0 +1,53 @@
+name: kronos-hourly
+on:
+  schedule:
+    - cron: "7 * * * *"      # minuto 7 de cada hora (UTC); GitHub puede retrasarlo unos minutos
+  workflow_dispatch: {}       # botón "Run workflow" para lanzarlo a mano
+
+permissions:
+  contents: write             # solo para guardar resultados en el repo
+
+concurrency:
+  group: kronos-desk          # nunca dos ejecuciones a la vez
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Código de Kronos (commit fijado)
+        run: |
+          git clone --quiet https://github.com/shiyu-coder/Kronos kronos-src
+          git -C kronos-src checkout --quiet 67b630e67f6a18c9e9be918d9b4337c960db1e9a
+
+      - name: Dependencias (torch versión CPU)
+        run: |
+          pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Caché de los pesos del modelo
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: kronos-small-v1
+
+      - name: Velas -> predicción -> sombra -> alertas
+        run: python src/run.py
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Guardar resultados en el repo
+        run: |
+          git config user.name "kronos-desk-bot"
+          git config user.email "kronos-desk-bot@users.noreply.github.com"
+          git add data docs/data
+          git diff --cached --quiet || (git commit -m "datos $(date -u +%FT%H:%MZ)" && git push)
