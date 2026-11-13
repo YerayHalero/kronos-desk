@@ -183,6 +183,31 @@ def conditions(sym: str, f: dict, move_pct: float) -> dict[str, str]:
     return out
 
 
+def lectura(f: dict) -> str:
+    """Lectura de Katerina: reglas fijas, sin IA adicional. Describe cuánto se parecen las trayectorias."""
+    base, n = f["base_close"], f["samples"]
+    ups = int(round(f["p_up"] * n))
+    lo = (f["lo"][-1] / base - 1) * 100
+    hi = (f["hi"][-1] / base - 1) * 100
+    if hi - lo >= 3.0:
+        juicio = "rango amplio, señal poco concluyente"
+    elif ups in (0, n):
+        juicio = "las trayectorias coinciden, señal más consistente"
+    else:
+        juicio = "trayectorias divididas, sin dirección clara"
+    return "%d de %d trayectorias suben; rango %+.1f%% a %+.1f%%: %s." % (ups, n, lo, hi, juicio)
+
+
+def katerina_body(entries: list, prueba: bool = False) -> str:
+    cab = "Katerina · Kronos Desk (modo sombra)"
+    lines = [("[PRUEBA] " if prueba else "") + cab]
+    for sid, f, texts in entries:
+        lines += texts
+        lines.append("   Lectura: " + lectura(f))
+    lines.append("Es una lectura de estudio, sin dinero real. La decisión es tuya.")
+    return "\n".join(lines)
+
+
 def send_telegram(text: str) -> bool:
     token, chat = os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not token or not chat:
@@ -208,8 +233,6 @@ def main() -> int:
     if os.environ.get("KD_TEST") == "1":                    # prueba manual de Telegram
         log("Secretos de Telegram presentes: token=%s chat_id=%s" % (
             bool(os.environ.get("TELEGRAM_TOKEN")), bool(os.environ.get("TELEGRAM_CHAT_ID"))))
-        log("Mensaje de prueba enviado: %s" % send_telegram(
-            "Kronos Desk: prueba de conexión correcta. Las alertas llegarán a este chat."))
 
     candles, sources = {}, {}
     for s in CFG["symbols"]:
@@ -243,16 +266,20 @@ def main() -> int:
 
     # alertas: solo cuando una condición ENTRA (no se repite cada hora mientras siga activa)
     state = json.loads(STATE.read_text()) if STATE.exists() else {"active": {}}
-    new_active, msgs = {}, []
+    new_active, entries = {}, []
     for sid, f in forecasts.items():
         cond = conditions(sid, f, move_pct)
         new_active[sid] = sorted(cond)
-        for k, text in cond.items():
-            if k not in state["active"].get(sid, []):
-                msgs.append(text)
-    if msgs:
-        body = "Kronos Desk (modo sombra)\n" + "\n".join(msgs) + "\nNo es consejo financiero."
-        if not send_telegram(body):
+        nuevos = [t for k, t in cond.items() if k not in state["active"].get(sid, [])]
+        if nuevos:
+            entries.append((sid, f, nuevos))
+    if os.environ.get("KD_TEST") == "1":                    # muestra del formato con datos reales de ahora
+        log("Mensaje de prueba enviado: %s" % send_telegram(katerina_body(
+            [(sid, f, ["%s: Kronos prevé %+.2f%% a %dh (%.2f -> %.2f)" % (
+                sid, (f["pred_close"] / f["base_close"] - 1) * 100, H, f["base_close"], f["pred_close"])])
+             for sid, f in forecasts.items()], prueba=True)))
+    if entries:
+        if not send_telegram(katerina_body(entries)):
             new_active = state["active"]                    # si falló el envío, se reintenta la próxima hora
     for s in CFG["symbols"]:                                # activo que falló hoy: conserva su estado anterior
         new_active.setdefault(s["id"], state["active"].get(s["id"], []))
