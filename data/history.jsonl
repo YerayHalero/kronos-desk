@@ -19,3 +19,6 @@
 {"symbol": "BTC", "base_time": "2026-11-14T18:00:00Z", "base_close": 65565.84, "pred_close": 66810.2453125, "p_up": 0.8, "actual_close": null, "made_at": "2026-11-14T19:02:50Z"}
 {"symbol": "ETH", "base_time": "2026-11-14T18:00:00Z", "base_close": 1830.98, "pred_close": 1903.0914794921875, "p_up": 0.8, "actual_close": null, "made_at": "2026-11-14T19:03:12Z"}
 {"symbol": "SOL", "base_time": "2026-11-14T18:00:00Z", "base_close": 72.24, "pred_close": 75.14571075439453, "p_up": 1.0, "actual_close": null, "made_at": "2026-11-14T19:03:34Z"}
+{"symbol": "BTC", "base_time": "2026-11-14T21:00:00Z", "base_close": 64455.78, "pred_close": 67175.0375, "p_up": 1.0, "actual_close": null, "made_at": "2026-11-14T22:56:27Z"}
+{"symbol": "ETH", "base_time": "2026-11-14T21:00:00Z", "base_close": 1773.75, "pred_close": 1877.369921875, "p_up": 1.0, "actual_close": null, "made_at": "2026-11-14T22:56:48Z"}
+{"symbol": "SOL", "base_time": "2026-11-14T21:00:00Z", "base_close": 69.91, "pred_close": 72.7401123046875, "p_up": 0.8, "actual_close": null, "made_at": "2026-11-14T22:57:10Z"}
