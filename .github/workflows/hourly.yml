@@ -8,6 +8,10 @@ on:
         description: "Enviar un mensaje de prueba a Telegram"
         type: boolean
         default: false
+      force_report:
+        description: "Forzar ahora el informe de la cartera de papel"
+        type: boolean
+        default: false
 
 permissions:
   contents: write             # solo para guardar resultados en el repo
@@ -50,6 +54,7 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           KD_TEST: ${{ inputs.test_telegram && '1' || '0' }}
+          KD_FORCE_REPORT: ${{ inputs.force_report && '1' || '0' }}
 
       - name: Guardar resultados en el repo
         run: |

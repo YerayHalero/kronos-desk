@@ -19,8 +19,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, os.environ.get("KRONOS_SRC", str(ROOT / "kronos-src")))
+sys.path.insert(0, str(ROOT / "src"))
+import paper  # noqa: E402  cartera de papel de Katerina
 
 CFG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
 DATA = ROOT / "data"
@@ -56,6 +59,8 @@ def fetch_binance(sym: dict) -> pd.DataFrame:
 
 
 def fetch_kraken(sym: dict) -> pd.DataFrame:
+    if not sym.get("kraken"):
+        raise RuntimeError("sin par en Kraken")
     d = http_json("https://api.kraken.com/0/public/OHLC?pair=%s&interval=60" % sym["kraken"])
     if d.get("error"):
         raise RuntimeError(str(d["error"]))
@@ -106,9 +111,9 @@ def forecast(pred, df: pd.DataFrame) -> dict:
     return {
         "base_time": x_ts.iloc[-1].strftime("%Y-%m-%dT%H:%M:%SZ"),
         "base_close": base,
-        "mean": p.mean(axis=0).round(2).tolist(),
-        "lo": p.min(axis=0).round(2).tolist(),
-        "hi": p.max(axis=0).round(2).tolist(),
+        "mean": p.mean(axis=0).round(6).tolist(),
+        "lo": p.min(axis=0).round(6).tolist(),
+        "hi": p.max(axis=0).round(6).tolist(),
         "pred_close": float(p[:, -1].mean()),
         "p_up": float((p[:, -1] > base).mean()),
         "samples": int(p.shape[0]),
@@ -167,6 +172,10 @@ def score(rows: list[dict]) -> dict:
 
 
 # ---------- 5) alertas ----------
+def fp(x: float) -> str:
+    return "%.4f" % x if x < 10 else "%.2f" % x
+
+
 def conditions(sym: str, f: dict, move_pct: float) -> dict[str, str]:
     """Devuelve {clave: texto} de las condiciones que se cumplen ahora."""
     base, pc = f["base_close"], f["pred_close"]
@@ -174,12 +183,12 @@ def conditions(sym: str, f: dict, move_pct: float) -> dict[str, str]:
     out = {}
     if abs(chg) >= move_pct:
         d = "up" if chg > 0 else "down"
-        out["move:" + d] = "%s: Kronos prevé %+.2f%% a %dh (%.2f -> %.2f)" % (sym, chg, H, base, pc)
+        out["move:" + d] = "%s: Kronos prevé %+.2f%% a %dh (%s -> %s)" % (sym, chg, H, fp(base), fp(pc))
     for lv in CFG.get("levels", {}).get(sym, []):
         if base < lv <= pc:
-            out["level:%s:up" % lv] = "%s: la predicción CRUZA AL ALZA el nivel %s (ahora %.2f, previsto %.2f)" % (sym, lv, base, pc)
+            out["level:%s:up" % lv] = "%s: la predicción CRUZA AL ALZA el nivel %s (ahora %s, previsto %s)" % (sym, lv, fp(base), fp(pc))
         elif pc <= lv < base:
-            out["level:%s:down" % lv] = "%s: la predicción CRUZA A LA BAJA el nivel %s (ahora %.2f, previsto %.2f)" % (sym, lv, base, pc)
+            out["level:%s:down" % lv] = "%s: la predicción CRUZA A LA BAJA el nivel %s (ahora %s, previsto %s)" % (sym, lv, fp(base), fp(pc))
     return out
 
 
@@ -252,17 +261,22 @@ def main() -> int:
     for sid, df in candles.items():
         f = forecast(pred, df)
         f["source"] = sources[sid]
-        f["recent"] = [[t.strftime("%Y-%m-%dT%H:%M:%SZ"), round(c, 2)]
+        f["recent"] = [[t.strftime("%Y-%m-%dT%H:%M:%SZ"), round(c, 6)]
                        for t, c in zip(df["timestamps"].iloc[-96:], df["close"].iloc[-96:])]
         forecasts[sid] = f
         if not any(r["symbol"] == sid and r["base_time"] == f["base_time"] for r in rows):
             rows.append({"symbol": sid, "base_time": f["base_time"], "base_close": f["base_close"],
                          "pred_close": f["pred_close"], "p_up": f["p_up"], "actual_close": None,
                          "made_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
-        log("%s: %.2f -> %.2f (%+.2f%%) p_sube=%.0f%% [%s]" % (
+        log("%s: %.4f -> %.4f (%+.2f%%) p_sube=%.0f%% [%s]" % (
             sid, f["base_close"], f["pred_close"], (f["pred_close"] / f["base_close"] - 1) * 100,
             f["p_up"] * 100, f["source"]))
     save_hist(rows)
+
+    # cartera de papel de Katerina (simulación): paradas, rebalanceo semanal, operaciones diarias e informe
+    informe = paper.step(CFG, forecasts, datetime.now(timezone.utc), force=os.environ.get("KD_FORCE_REPORT") == "1")
+    if informe:
+        send_telegram(informe)
 
     # alertas: solo cuando una condición ENTRA (no se repite cada hora mientras siga activa)
     state = json.loads(STATE.read_text()) if STATE.exists() else {"active": {}}
@@ -275,8 +289,8 @@ def main() -> int:
             entries.append((sid, f, nuevos))
     if os.environ.get("KD_TEST") == "1":                    # muestra del formato con datos reales de ahora
         log("Mensaje de prueba enviado: %s" % send_telegram(katerina_body(
-            [(sid, f, ["%s: Kronos prevé %+.2f%% a %dh (%.2f -> %.2f)" % (
-                sid, (f["pred_close"] / f["base_close"] - 1) * 100, H, f["base_close"], f["pred_close"])])
+            [(sid, f, ["%s: Kronos prevé %+.2f%% a %dh (%s -> %s)" % (
+                sid, (f["pred_close"] / f["base_close"] - 1) * 100, H, fp(f["base_close"]), fp(f["pred_close"]))])
              for sid, f in forecasts.items()], prueba=True)))
     if entries:
         if not send_telegram(katerina_body(entries)):

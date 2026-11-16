@@ -32,6 +32,10 @@
   <h1>Kronos Desk · modo sombra</h1>
   <div class="sub" id="meta">Cargando…</div>
   <div id="cards"></div>
+  <div class="card" id="wallet" style="display:none">
+    <div class="row"><b>Cartera de papel de Katerina</b><span class="sub" id="wsub"></span></div>
+    <div id="wbody"></div>
+  </div>
   <div class="card">
     <div class="row"><b>Marcador en sombra</b><span class="sub">acierto vs. mantener</span></div>
     <div id="score"></div>
@@ -47,6 +51,7 @@ function h(tag, attrs, ...kids) {
   return e;
 }
 const fmt = (x, d = 2) => Number(x).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fp = (x) => fmt(x, x < 10 ? 4 : 2);
 const pct = (x) => (x >= 0 ? '+' : '') + fmt(x, 2) + '%';
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -78,8 +83,8 @@ function card(sym, f, hz) {
   const lo = (Math.min(...f.lo.slice(-1)) / f.base_close - 1) * 100;
   const hi = (Math.max(...f.hi.slice(-1)) / f.base_close - 1) * 100;
   return h('div', { class: 'card' },
-    h('div', { class: 'row' }, h('span', { class: 'sym' }, sym), h('span', { class: 'big' }, fmt(f.base_close))),
-    h('div', { class: 'row' }, h('span', { class: 'sub' }, `a ${hz} h previsto`), h('span', { class: 'big ' + cls }, fmt(f.pred_close) + '  ' + pct(chg))),
+    h('div', { class: 'row' }, h('span', { class: 'sym' }, sym), h('span', { class: 'big' }, fp(f.base_close))),
+    h('div', { class: 'row' }, h('span', { class: 'sub' }, `a ${hz} h previsto`), h('span', { class: 'big ' + cls }, fp(f.pred_close) + '  ' + pct(chg))),
     chart(f),
     h('div', { class: 'kv' },
       h('div', {}, h('span', {}, 'Trayectorias que suben'), h('b', {}, Math.round(f.p_up * 100) + '% (' + Math.round(f.p_up * f.samples) + '/' + f.samples + ')')),
@@ -98,6 +103,42 @@ function scoreTable(sc) {
   }
   return h('div', {}, t, h('p', { class: 'sub' }, 'Estrategia = largo si la predicción sube, fuera si baja (rendimiento medio por predicción de 24 h). Las predicciones horarias se solapan; las columnas «indep.» usan una de cada 24. Con pocos datos todo esto es ruido.'));
 }
+
+function wallet(w) {
+  const pc = (a, b) => pct((a / b - 1) * 100);
+  const box = document.getElementById('wbody');
+  document.getElementById('wallet').style.display = '';
+  document.getElementById('wsub').textContent = 'simulación · sin dinero real';
+  const dif = (w.valor - w.mantener) / w.valor_inicial * 100;
+  box.append(
+    h('div', { class: 'kv' },
+      h('div', {}, h('span', {}, 'Valor ahora'), h('b', {}, fmt(w.valor) + ' $')),
+      h('div', {}, h('span', {}, 'Desde el inicio'), h('b', { class: w.valor >= w.valor_inicial ? 'up' : 'dn' }, pc(w.valor, w.valor_inicial))),
+      h('div', {}, h('span', {}, 'Mantener sin tocar'), h('b', {}, pc(w.mantener, w.valor_inicial) + ' (dif. ' + pct(dif) + ')'))),
+    h('p', { class: 'sub' }, 'Semanal: ' + w.pos_semanal + ' · Diario: ' + w.pos_diario));
+  if (w.historial.length > 1) {
+    const hs = w.historial, W = 700, Hh = 120, pad = 6;
+    const all = hs.flatMap(x => [x.total, x.hold]);
+    const mn = Math.min(...all), mx = Math.max(...all);
+    const X = i => pad + (i / (hs.length - 1)) * (W - 2 * pad), Y = v => Hh - pad - ((v - mn) / (mx - mn || 1)) * (Hh - 2 * pad);
+    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+    for (const [k, col, dash] of [['hold', '#8b95a5', '5 4'], ['total', '#3fb68b', '']]) {
+      const l = document.createElementNS(NS, 'polyline');
+      l.setAttribute('points', hs.map((x, i) => X(i).toFixed(1) + ',' + Y(x[k]).toFixed(1)).join(' '));
+      l.setAttribute('fill', 'none'); l.setAttribute('stroke', col); l.setAttribute('stroke-width', 2);
+      if (dash) l.setAttribute('stroke-dasharray', dash);
+      svg.append(l);
+    }
+    box.append(svg, h('p', { class: 'sub' }, 'Verde: cartera de Katerina · Gris discontinua: mantener sin tocar'));
+  }
+  if (w.operaciones.length) {
+    const t = h('table', {}, h('tr', {}, h('th', {}, 'Fecha'), h('th', {}, 'Libro'), h('th', {}, 'Operación'), h('th', {}, '$')));
+    for (const o of w.operaciones.slice().reverse().slice(0, 8))
+      t.append(h('tr', {}, h('td', {}, o.t.slice(5, 10)), h('td', {}, o.libro), h('td', {}, o.op + ' ' + o.activo), h('td', {}, fmt(o.usd, 0))));
+    box.append(t);
+  }
+}
+fetch('data/wallet.json?' + Date.now()).then(r => r.json()).then(wallet).catch(() => {});
 
 fetch('data/latest.json?' + Date.now()).then(r => r.json()).then(d => {
   document.getElementById('meta').textContent = 'Actualizado ' + new Date(d.generated_at).toLocaleString('es-ES') + ' · ' + d.model + ' · horizonte ' + d.horizon_hours + ' h';

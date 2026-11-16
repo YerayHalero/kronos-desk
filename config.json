@@ -1,15 +1,68 @@
 {
-  "model": "NeoQuasar/Kronos-small",
-  "tokenizer": "NeoQuasar/Kronos-Tokenizer-base",
-  "lookback": 512,
-  "horizon_hours": 24,
-  "samples": 5,
-  "alert_move_pct": 2.0,
-  "sources": ["binance", "kraken"],
-  "symbols": [
-    {"id": "BTC", "binance": "BTCUSDT", "kraken": "XBTUSD"},
-    {"id": "ETH", "binance": "ETHUSDT", "kraken": "ETHUSD"},
-    {"id": "SOL", "binance": "SOLUSDT", "kraken": "SOLUSD"}
-  ],
-  "levels": {"BTC": [], "ETH": [], "SOL": []}
+ "model": "NeoQuasar/Kronos-small",
+ "tokenizer": "NeoQuasar/Kronos-Tokenizer-base",
+ "lookback": 512,
+ "horizon_hours": 24,
+ "samples": 5,
+ "alert_move_pct": 2.0,
+ "sources": [
+  "binance",
+  "kraken"
+ ],
+ "symbols": [
+  {
+   "id": "BTC",
+   "binance": "BTCUSDT",
+   "kraken": "XBTUSD"
+  },
+  {
+   "id": "ETH",
+   "binance": "ETHUSDT",
+   "kraken": "ETHUSD"
+  },
+  {
+   "id": "SOL",
+   "binance": "SOLUSDT",
+   "kraken": "SOLUSD"
+  },
+  {
+   "id": "BNB",
+   "binance": "BNBUSDT",
+   "kraken": null
+  },
+  {
+   "id": "ADA",
+   "binance": "ADAUSDT",
+   "kraken": "ADAUSD"
+  }
+ ],
+ "levels": {
+  "BTC": [],
+  "ETH": [],
+  "SOL": [],
+  "BNB": [],
+  "ADA": []
+ },
+ "paper": {
+  "_nota": "Saldos leidos de las capturas de Binance del 16/11/2026. dust_usd = resto de monedas pequenas (BTTC, SHIB, VET, EUR, CHZ, DOT, IOTA, HOT, DOGE...) a valor fijo.",
+  "holdings": {
+   "BTC": 0.00771829,
+   "BNB": 0.31644252,
+   "ADA": 91.46513493,
+   "USDC": 36.62001588,
+   "SOL": 0.0007655,
+   "ETH": 9.4e-07
+  },
+  "dust_usd": 8.53,
+  "fee": 0.001,
+  "min_trade_usd": 5.0,
+  "daily_book_pct": 0.25,
+  "daily_max_positions": 2,
+  "signal_min_pup": 0.8,
+  "signal_min_move_pct": 0.6,
+  "stop_pct": 3.0,
+  "trend_days": 20,
+  "max_weight": 0.4,
+  "report_hour_utc": 7
+ }
 }
