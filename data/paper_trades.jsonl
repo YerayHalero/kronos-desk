@@ -4,3 +4,5 @@
 {"t": "2026-11-16T01:38Z", "libro": "semanal", "op": "venta", "activo": "BNB", "usd": 147.68, "precio": 591.52, "motivo": "tendencia bajista"}
 {"t": "2026-11-16T01:38Z", "libro": "diario", "op": "compra", "activo": "ETH", "usd": 90.76, "precio": 1808.52, "motivo": "señal Kronos +2.0%, 5/5 trayectorias"}
 {"t": "2026-11-16T01:38Z", "libro": "diario", "op": "compra", "activo": "BTC", "usd": 90.76, "precio": 64783.57, "motivo": "señal Kronos +1.7%, 5/5 trayectorias"}
+{"t": "2026-11-17T13:08Z", "libro": "diario", "op": "venta", "activo": "ETH", "usd": 91.49, "precio": 1825.06, "motivo": "la señal ya no se cumple"}
+{"t": "2026-11-17T13:08Z", "libro": "diario", "op": "venta", "activo": "BTC", "usd": 91.14, "precio": 65119.43, "motivo": "la señal ya no se cumple"}
