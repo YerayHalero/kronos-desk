@@ -3,9 +3,9 @@
   "BTC": [],
   "ETH": [],
   "SOL": [],
-  "BNB": [],
-  "ADA": [
+  "BNB": [
    "move:down"
-  ]
+  ],
+  "ADA": []
  }
 }
