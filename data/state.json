@@ -5,9 +5,9 @@
   "SOL": [
    "move:down"
   ],
-  "BNB": [],
-  "ADA": [
-   "move:down"
-  ]
+  "BNB": [
+   "move:up"
+  ],
+  "ADA": []
  }
 }
