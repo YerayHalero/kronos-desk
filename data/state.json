@@ -6,8 +6,10 @@
    "move:down"
   ],
   "BNB": [
-   "move:up"
+   "move:down"
   ],
-  "ADA": []
+  "ADA": [
+   "move:down"
+  ]
  }
 }
