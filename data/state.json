@@ -1,15 +1,13 @@
 {
  "active": {
-  "BTC": [
-   "move:up"
-  ],
-  "ETH": [
-   "move:up"
-  ],
+  "BTC": [],
+  "ETH": [],
   "SOL": [],
   "BNB": [
    "move:up"
   ],
-  "ADA": []
+  "ADA": [
+   "move:up"
+  ]
  }
 }
