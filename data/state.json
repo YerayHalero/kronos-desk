@@ -2,7 +2,9 @@
  "active": {
   "BTC": [],
   "ETH": [],
-  "SOL": [],
+  "SOL": [
+   "move:down"
+  ],
   "BNB": [],
   "ADA": []
  }
